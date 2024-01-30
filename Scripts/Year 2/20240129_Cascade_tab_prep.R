@@ -32,6 +32,12 @@
    #read MSD
    file_path <- si_path() %>% 
      return_latest("South Africa") 
+   
+   #read subnat
+   df_nat_subnat <- si_path() %>% 
+     return_latest("SUBNAT") %>% 
+     read_psd()
+   
 
 # IMPORT ------------------------------------------------------------------
   
@@ -46,22 +52,33 @@
      read_csv()
    
    #import MSD
-   df_msd <- read_psd(filepath)
+   df_msd <- read_psd(file_path)
 
 # MUNGE -------------------------------------------------------------------
+   
+   # GRAB UIDS from subnat
+   df_uid <- df_nat_subnat %>% 
+     filter(operatingunit == "South Africa",
+            fiscal_year == 2024) %>% 
+     mutate(psnu = str_replace(psnu, "Mofutsanyane", "Mofutsanyana")) %>%
+     mutate(shortname = str_replace(psnu, "District Municipality", "DM")) %>% 
+     mutate(shortname = str_replace(shortname, "Metropolitan Municipality", "MM")) %>% 
+     count(psnu, psnuuid, shortname)
 
    #grab PLHIV attend from indicators dataset - collapse age bands + adjust PSNU
   df_indic_plhiv <- df_indic %>%
      filter(indicator == "plhiv_attend",
             area_level_label == "District",
-            sex== "both",
+            sex != "both",
             calendar_quarter == "CY2025Q3",
             age_group_label %in% c("<1", "1-4", "5-9", "10-14", "15-24", "25-34", "35-49", "50+")) %>% 
      mutate(age_group_label = case_when(age_group_label == "1-4" ~ "01-09",
                                         age_group_label == "5-9" ~ "01-09",
                                         age_group_label == "<1" ~ "<01",
                                         TRUE ~ age_group_label)) %>% 
-     group_by(indicator, area_name, age_group_label, calendar_quarter) %>% 
+    mutate(sex = str_to_title(sex)) %>% 
+   # mutate(sex = ifelse(sex == "Both", "All", sex)) %>% 
+     group_by(indicator, area_name, age_group_label, sex,calendar_quarter) %>% 
      summarise(across(starts_with("mean"), sum, na.rm = T), .groups = "drop") %>% 
      rename(val_df_indicator = mean) %>% 
      mutate(area_name = case_when(
@@ -125,15 +142,18 @@
      mutate(age = str_remove(age, "\"\"")) %>%
      filter(indicator_code == "PLHIV_Attend.T") %>%
      mutate(indicator_code = "plhiv_attend") %>% 
-     group_by(indicator_code, psnu, age, calendar_quarter) %>% 
+     group_by(indicator_code, psnu, age, sex, calendar_quarter) %>% 
      summarise(across(starts_with("value"), sum, na.rm = T), .groups = "drop") %>%
      mutate(psnu = str_replace(psnu, "District Municipality", "DM"),
             psnu = str_replace(psnu, "Metropolitan Municipality", "MM"),
             psnu = str_replace(psnu, "Mofutsanyane", "Mofutsanyana")) %>% 
      rename(val_df_indic_pepfar = value) %>% 
-     left_join(df_indic_plhiv, by = c("indicator_code" = "indicator", "psnu" = "area_name","age" = "age_group_label", "calendar_quarter")) %>% 
+     left_join(df_indic_plhiv, by = c("indicator_code" = "indicator", "psnu" = "area_name","age" = "age_group_label", "sex","calendar_quarter")) %>% 
      mutate(diff = val_df_indic_pepfar - val_df_indicator)
    
+   test1_plhiv <- test1_plhiv %>% 
+     left_join(df_uid %>% select(-c(psnu, n)), by = c("psnu" = "shortname")) %>% 
+     relocate(psnuuid, .after = psnu) 
    
    # TX_CURR: column roll up of old age bands and new fy24 target age bands
    df_old_bands <- df_msd %>% 
@@ -142,7 +162,7 @@
             indicator == "TX_CURR",
             fiscal_year == 2023,
             standardizeddisaggregate == "Age/Sex/HIVStatus") %>% 
-     group_by(fiscal_year, psnu, age_2019, indicator) %>% 
+     group_by(fiscal_year, psnu, psnuuid, age_2019, sex, indicator) %>% 
      summarise(across(starts_with("qtr"), sum, na.rm = T), .groups = "drop") %>% 
      reshape_msd() %>% 
      filter(period == "FY23Q4") %>% 
@@ -151,19 +171,18 @@
                                  age_2019 == "25-29" | age_2019 == "30-34" ~ "25-34",
                                  age_2019 == "35-39" | age_2019 == "40-44" | age_2019 == "45-49" ~ "35-49",
                                  TRUE ~ age_2019)) %>% 
-     group_by(period, psnu, age_2019, indicator) %>% 
+     group_by(period, psnu, psnuuid, age_2019, sex, indicator) %>% 
      summarise(across(starts_with("value"), sum, na.rm = T), .groups = "drop") %>% 
      rename(age = age_2019,
             val_old_band = value)
      
-   
    test2_txcurr <- df_msd %>% 
      clean_agency() %>% 
      filter(funding_agency %in% c("USAID", "CDC"),
             indicator == "TX_CURR",
             fiscal_year == 2023,
             standardizeddisaggregate == "Age/Sex/HIVStatus") %>% 
-     group_by(fiscal_year, psnu, target_age_2024, indicator) %>% 
+     group_by(fiscal_year, psnu, psnuuid, target_age_2024, sex, indicator) %>% 
      summarise(across(starts_with("qtr"), sum, na.rm = T), .groups = "drop") %>% 
      reshape_msd() %>% 
      filter(period == "FY23Q4") %>% 
@@ -173,6 +192,17 @@
      left_join(df_old_bands) %>% 
      mutate(diff = val_new_band - val_old_band)
    
+   #ART coverage
+   test2_txcurr %>% 
+     rename(fy23q4_txcurr = val_new_band) %>% 
+     select(-c(period, indicator, val_old_band, diff)) %>% 
+     left_join(test1_plhiv %>% select(psnuuid, age, sex, val_df_indic_pepfar, val_df_indicator), by = c("psnuuid", "age", "sex")) %>% 
+     rename(plhiv_attend_new_band =val_df_indic_pepfar,
+            plhiv_attend_old_band_rollup = val_df_indicator) %>% 
+     mutate(art_cov_new_band = fy23q4_txcurr /plhiv_attend_new_band) %>% 
+     mutate(art_cov_old_band = fy23q4_txcurr /plhiv_attend_old_band_rollup)
+
+ 
    
    
 
