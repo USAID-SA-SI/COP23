@@ -91,7 +91,7 @@
             fy24_art_cov = cop23t_tx_curr/plhiv_attend_sept_2023_2025_cy2025q3,
             fy25_art_cov = cop24t_tx_curr/plhiv_attend_sept_2023_2025_cy2025q3,
             fy26_art_cov = cop25t_tx_curr/plhiv_attend_sept_2023_2025_cy2025q3) %>% 
-     select(c(short_name, contains("art_cov"))) %>% 
+     select(c(short_name,plhiv_attend_sept_2023_2025_cy2025q3, contains("art_cov"))) %>% 
     rename(`Sept 2023` = fy23_art_cov,
            `Sept 2024` = fy24_art_cov,
            `Sept 2025` = fy25_art_cov,
@@ -259,7 +259,7 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
      mutate(fill_color = ifelse(str_detect(indicator, "2023"), "#5CD5BC", "#00392A")) %>% 
      ggplot(aes(x = indicator, y = value, fill = fill_color)) + 
      geom_col() +
-     facet_wrap(~fct_reorder(short_name, desc(value)), nrow = 4) +
+     facet_wrap(~fct_reorder(short_name, desc(plhiv_attend_sept_2023_2025_cy2025q3)), nrow = 4) +
      coord_flip() + 
      si_style_nolines() +
      scale_y_continuous(label = label_number(scale_cut = cut_short_scale())) + 
