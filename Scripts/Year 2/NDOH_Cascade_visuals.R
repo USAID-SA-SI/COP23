@@ -100,6 +100,7 @@
      janitor::clean_names() %>% 
      group_by(short_name) %>% 
      summarise_if(is.double, sum, na.rm = TRUE) %>% 
+<<<<<<< HEAD
      mutate(fy23_art_cov_excl_ps = tx_curr_2023_cy2023q3 /plhiv_attend_sept_2023_2025_cy2025q3,
             fy24_art_cov_excl_ps = cop23t_tx_curr_ps/plhiv_attend_sept_2023_2025_cy2025q3,
             fy25_art_cov_excl_ps = cop24t_tx_curr_ps/plhiv_attend_sept_2023_2025_cy2025q3,
@@ -118,6 +119,18 @@
            `Sept 2025 incl PS` = fy25_art_cov,
            `Sept 2026 incl PS` = fy26_art_cov) %>% 
     pivot_longer(cols = `Sept 2023 excl PS`:`Sept 2026 incl PS`, names_to = "indicator")
+=======
+     mutate(fy23_art_cov = tx_curr_2023_cy2023q3 /plhiv_attend_sept_2023_2025_cy2025q3,
+            fy24_art_cov = cop23t_tx_curr/plhiv_attend_sept_2023_2025_cy2025q3,
+            fy25_art_cov = cop24t_tx_curr/plhiv_attend_sept_2023_2025_cy2025q3,
+            fy26_art_cov = cop25t_tx_curr/plhiv_attend_sept_2023_2025_cy2025q3) %>% 
+     select(c(short_name,plhiv_attend_sept_2023_2025_cy2025q3, contains("art_cov"))) %>% 
+    rename(`Sept 2023` = fy23_art_cov,
+           `Sept 2024` = fy24_art_cov,
+           `Sept 2025` = fy25_art_cov,
+           `Sept 2026` = fy26_art_cov) %>% 
+    pivot_longer(cols = `Sept 2023`:`Sept 2026`, names_to = "indicator")
+>>>>>>> fa7f79a83e3a7265719107dde3c8e4efea9865e6
   
  df_agesex_cov <-  df_cov %>% 
     janitor::clean_names() %>% 
