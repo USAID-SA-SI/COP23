@@ -30,7 +30,7 @@
     data_folder <- "Data"
     
     df_cscd <- data_folder %>% 
-      return_latest("Cascade_PrivateSector_TSTGrossAgeSex_2024-02-13v1") %>% 
+      return_latest("Cascade_PrivateSector_TSTGrossAgeSex_2024-02-13v2") %>% 
       read_csv()
 
     #rounding function
@@ -277,6 +277,7 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
                    color = fill_color),
                family = "Source Sans Pro",
                hjust = -0.2,
+               fontface='bold',
                size = 10/.pt) +
      scale_fill_identity() +
      scale_color_identity() +
@@ -287,7 +288,7 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
     theme(axis.text.x = element_blank())
 
     
-   #si_save("Graphics/01_txcurr_psnu_ps.svg")
+   si_save("Graphics/01_txcurr_psnu_ps.svg")
    
    
    # age / sex tx_curr over time
@@ -375,7 +376,7 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
           caption = glue("Source: {source}")) +
      theme(axis.text.x = element_blank())
    
-  # si_save("Graphics/03a_art_cov_psnu_excl_ps.svg")
+  si_save("Graphics/03a_art_cov_psnu_excl_ps.svg")
    
    #including PS
    df_psnu_cov %>% 
@@ -392,9 +393,10 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
      scale_y_continuous(label = label_number(scale_cut = cut_short_scale())) + 
      geom_text(aes(y = value,
                    label = percent(value, 1),
-                   color = fill_color),
+                   color = "#00392A"),
                family = "Source Sans Pro",
                hjust = -0.2,
+               fontface='bold',
                size = 10/.pt) +
      scale_fill_identity() +
      scale_color_identity() +
@@ -431,6 +433,7 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
                    color = fill_color),
                family = "Source Sans Pro",
                hjust = -0.5,
+               fontface='bold',
                size = 10/.pt) +
      scale_fill_identity() +
      scale_color_identity() +
@@ -463,9 +466,10 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
      scale_y_continuous(label = label_number(scale_cut = cut_short_scale())) + 
      geom_text(aes(y = value,
                    label = percent(value, 1),
-                   color = fill_color),
+                   color = "#00392A"),
                family = "Source Sans Pro",
                hjust = -0.5,
+               fontface='bold',
                size = 10/.pt) +
      scale_fill_identity() +
      scale_color_identity() +
@@ -555,10 +559,10 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
    df_growth_psnu %>% 
      mutate(fy = str_to_upper(fy)) %>% 
      mutate(fill_color = ifelse(str_detect(fy, "22"), scooter_med, usaid_blue)) %>% 
-     mutate(vjust_df = ifelse(str_detect(short_name, "gp COJ|gp Ekurhuleni|wc CPT|gp Tshwane|kz eThekweni"),
+     mutate(vjust_df = ifelse(str_detect(short_name, "gp COJ|gp Ekurhuleni|wc CPT|gp Tshwane|kz eThekweni|mp Ehlanzeni|nw Bojanala"),
                               1.8,2.2), 
             #vjust_lab_adj = ifelse(str_detect(short_name, "COJ") & fy == "COP22", -2, -0.5),
-            text_color = ifelse(str_detect(short_name, "gp COJ|gp Ekurhuleni|wc CPT|gp Tshwane|kz eThekweni"), 
+            text_color = ifelse(str_detect(short_name, "gp COJ|gp Ekurhuleni|wc CPT|gp Tshwane|kz eThekweni|mp Ehlanzeni|nw Bojanala"), 
                                 "grey", trolley_grey)) %>% 
      # filter(short_name %ni% neg_net_new_psnu) %>% 
      ggplot(aes(x = fy, y = abs_diff_incl_ps, fill = fill_color)) + 
@@ -574,15 +578,17 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
                family = "Source Sans Pro",
                #hjust = -0.2,
                vjust = -0.5,
-               size =8/.pt) +
+               fontface='bold',
+               size =10/.pt) +
      geom_text(aes(y = abs_diff_incl_ps,
                    label = glue("{percent(growth_incl_ps, 1)}"),
                    color = text_color,
                    vjust = vjust_df),
+                   fontface='bold',
                family = "Source Sans Pro",
                #hjust = -0.2,
                #vjust = 2.5,
-               size = 8/.pt) +
+               size = 10/.pt) +
      scale_fill_identity() +
      scale_color_identity() +
      labs(x = NULL, y = NULL,
@@ -592,7 +598,7 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
      theme(axis.text.y = element_blank(), 
            axis.text.x = element_text(angle=90, hjust=1))
 
-#si_save("Graphics/06_growth_bar_psnu_incl_ps.svg")
+si_save("Graphics/06_growth_bar_psnu_incl_ps.pdf")
 
 
 #vline_agesex / vbar_agesex
@@ -621,6 +627,7 @@ df_tx_full_viz %>%
             family = "Source Sans Pro",
             hjust = 0.5,
             vjust = -0.2,
+            fontface='bold',
             size = 10/.pt) +
   scale_fill_identity() +
   scale_color_identity()  +
