@@ -76,14 +76,22 @@
       rename(`FY23 (Result) excl PS` = tx_curr_2023_cy2023q3,
              `FY24 (Target) excl PS` = cop23t_tx_curr,
              `FY25 (Target) excl PS` = cop24t_tx_curr,
-             `FY26 (Target) exlc PS` = cop25t_tx_curr, 
+             `FY26 (Target) excl PS` = cop25t_tx_curr, 
              `FY23 (Result)` = tx_curr_ps_2023_cy2023q3,
              `FY24 (Target)` = cop23t_tx_curr_ps,
              `FY25 (Target)` = cop24t_tx_curr_ps,
              `FY26 (Target)` = cop25t_tx_curr_ps) %>% 
       pivot_longer(cols = c(`FY23 (Result) excl PS`:`FY26 (Target)`), names_to = "indicator") %>% 
       group_by(short_name, indicator) %>% 
-      summarise(across(c(value), sum, na.rm = TRUE), .groups = "drop") 
+      summarise(across(c(value), sum, na.rm = TRUE), .groups = "drop") %>% 
+      mutate(fy = case_when(indicator=="FY23 (Result)" ~ "cop22", 
+                           indicator=="FY24 (Target)" ~ "cop23",
+                           indicator=="FY25 (Target)" ~ "cop24",
+                           indicator=="FY26 (Target)" ~ "cop25", 
+                           indicator=="FY23 (Result) excl PS" ~ "cop22", 
+                           indicator=="FY24 (Target) excl PS" ~ "cop23",
+                           indicator=="FY25 (Target) excl PS" ~ "cop24",
+                           indicator=="FY26 (Target) excl PS" ~ "cop25"))
    
    df_tx_agesex_viz <- df_tx %>% 
      janitor::clean_names() %>% 
@@ -225,7 +233,7 @@ df_growth_agesex <-  df_growth %>%
   mutate(indic = str_remove(indicator, "cop\\d+_"),
          fy = str_extract(indicator, "cop\\d+")) %>% 
   select(-c(indicator)) %>% 
-  pivot_wider(names_from = "indic")
+  pivot_wider(names_from = "indic") 
 
 df_tx_full <-  df_cscd %>% 
   select(short_name, sex, tst_age, `TST LineID`, Agency, `COP23T|TX_CURR_PS`, `COP24T|TX_CURR_PS`, `COP25T|TX_CURR_PS`, 
@@ -261,6 +269,8 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
       
    # PNSU tx_curr over time
  df_tx_psnu_viz %>% 
+     left_join(df_growth_psnu, by=c("short_name" = "short_name", "fy" = "fy")) %>% 
+     select(short_name, indicator, value, fy, growth_incl_ps) %>% 
      filter(indicator == "FY23 (Result) excl PS" | 
             indicator == "FY24 (Target)" |
             indicator == "FY25 (Target)" |
@@ -278,10 +288,18 @@ cop22 <- " = SUM('TX_CURR||2023|CY2023Q3'-'TX_CURR||2022|CY2022Q32')/SUM('TX_CUR
                family = "Source Sans Pro",
                hjust = -0.2,
                fontface='bold',
-               size = 10/.pt) +
+               size = 10/.pt) + 
+      geom_text(aes(y = 1,
+                    label = percent(growth_incl_ps, 1),
+                    color = trolley_grey),
+                family = "Source Sans Pro",
+                hjust = 1.1,
+                #vjust = -0.2,
+                fontface='bold',
+                size = 8/.pt) +
      scale_fill_identity() +
      scale_color_identity() +
-     scale_y_continuous(limits = c(0,1000000)) +
+     scale_y_continuous(limits = c(-150000,1000000)) +
      labs(title = "TX_CURR Targets over time by district" %>% toupper(),
           subtitle = "FY23 Results, FY24-FY26 Targets", 
           x = NULL, y = NULL, caption = glue("{source}")) + 
